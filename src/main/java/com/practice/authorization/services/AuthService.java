@@ -1,6 +1,8 @@
 package com.practice.authorization.services;
 
-import com.practice.authorization.models.Role;
+import com.practice.authorization.exceptions.UserAlreadyExistException;
+import com.practice.authorization.exceptions.UserNotFoundException;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import com.practice.authorization.models.User;
 import com.practice.authorization.repositories.RoleRepository;
 import com.practice.authorization.repositories.SessionRepository;
@@ -15,25 +17,33 @@ public class AuthService {
     private RoleRepository roleRepository;
     private UserRepository userRepository;
     private SessionRepository sessionRepository;
-
-    public AuthService(UserRepository userRepository){
-
+    private BCryptPasswordEncoder bCryptPasswordEncoder;
+    public AuthService(UserRepository userRepository, RoleRepository roleRepository, SessionRepository sessionRepository,BCryptPasswordEncoder bCryptPasswordEncoder ){
+        this.userRepository = userRepository;
+        this.sessionRepository = sessionRepository;
+        this.roleRepository = roleRepository;
+        this.bCryptPasswordEncoder = bCryptPasswordEncoder;
     }
 
-    public User userSignUp(User user, String role){
+    public User userSignUp(String email,String password) throws UserAlreadyExistException {
+        Optional<User>userOptional = userRepository.findByEmail(email);
+        if(userOptional.isPresent())
+            throw new UserAlreadyExistException("User Already exists with given email id");
+        User newUser = new User();
+        newUser.setEmail(email);
 
-        List<Role> roles = roleRepository.findRoleByName(role);
-        Role newUserRole;
-//
-//        if(roleOptional.isEmpty()){
-//            Role newRole = new Role();
-//            newRole.setName(role);
-//            newUserRole = roleRepository.save(newRole);
-//        }else{
-//            newUserRole = roleOptional.get();
-//        }
-//        user.getUser_roles().add(newUserRole);
+        newUser.setSaltedPassword(bCryptPasswordEncoder.encode(password));
 
-        return userRepository.save(user);
+        return userRepository.save(newUser);
+    }
+    public String userLogin(String email,String password) throws UserNotFoundException{
+        Optional<User> userOptional = userRepository.findByEmail(email);
+        if(userOptional.isEmpty()) throw new UserNotFoundException("No user exists with email is : " + email);
+        User user = userOptional.get();
+        String enc_Password = user.getSaltedPassword();
+        boolean matches = bCryptPasswordEncoder.matches(password,enc_Password);
+        if(matches == false) throw new UserNotFoundException("Password is Wrong for current Email id");
+
+        return "token";
     }
 }
