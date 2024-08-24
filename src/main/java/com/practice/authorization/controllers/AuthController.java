@@ -11,10 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/user")
@@ -50,6 +47,17 @@ public class AuthController {
         }catch (Exception e){
             loginResponseDto.setResponseStatus(ResponseStatus.FAILURE);
             return new ResponseEntity<>(loginResponseDto,null,HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    @PatchMapping("/logout")
+    ResponseEntity<ResponseStatus> logout(@RequestBody Long id,Long sessionId){
+        try{
+            boolean flag = authService.logOut(id,sessionId);
+            if(flag)
+            return new ResponseEntity<>(ResponseStatus.SUCCESS,HttpStatus.OK);
+            else throw new RuntimeException("You are not authorized enough");
+        }catch (Exception e){
+            return new ResponseEntity<>(ResponseStatus.FAILURE,HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }
